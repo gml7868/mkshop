@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- Http를 위한 자동 설정 활성화 -->
+	<sec:http auto-config="true">
+		<sec:csrf disabled="true"/>
+		<!-- 
+			화면에 아이디와 비밀번호를 타이핑해서 로그인하는 mvc 방식 로그인 설정
+				로그인 화면 아이디의 name 속성 : <input type="text" name="">
+				로그인 화면 비밀번호믜 name 속성
+				로그인 화면을 보여줄 주소(지정하지 않을 경우 GET /login)
+				스프링 시큐리티가 로그인을 처리할 주소(지정하지 않을 경우 POST /login)
+				로그인한 다음 이동할 주소
+			화면이 없는 REST 방식일 경우 <sec:http-basic/>을 사용 
+		 -->
+		 <sec:form-login
+		 	username-parameter="username"
+		 	password-parameter="password"
+		 	login-page="/user/login"
+		 	login-processing-url="/user/login"
+		 	default-target-url="/"/>
+		 	
+		 <!-- 로그아웃 경로. 반드시 POST로 요청해야 된다.
+		 	  로그아웃을 처리할 주소
+		 	  로그아웃을 처리한 다음 이동할 주소 -->
+		 <sec:logout
+		 	logout-url="/user/logout"
+		 	logout-success-url="/"/>
+	</sec:http>
+	
+	<!-- 비밀번호 암호화 객체
+		  : 스프링 시큐리티에서 비밀번호 암호화는 필수 설정 -->
+	
+	<bean id="encoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"></bean>
+	
+	<!-- 스프링 시큐리티 인증과 인가를 위한 설정
+				인증 (Authentication) : 사용자를 확인(아이디와 비번이 맞는가)
+				인가 (Authorization)  : 권한을 확인
+			데이터 베이스에 아이디, 비번, 권한을 저장해두고 읽어오는 JDBC방식 인증/인가의 경우
+			스프링 시큐리티가 모두 만들어 놓음
+			프로그래머는 데이터 소스 이름, 인증을 위한 sql, 인가를 위한 sql을 작성해 주면 됨
+			인증을 위한 SQL : 아이디, 비번, enabled 
+			인가를 위한 SQL : 하나가 아니라 여러개일 수 있음
+				username		authority
+				spring			ROLE_사용자
+				spring			ROLE_관리자
+	-->
+	
+	<sec:authentication-manager>
+		<sec:authentication-provider>
+			<sec:jdbc-user-service data-source-ref="dataSource"
+								   users-by-username-query="select username, password, enabled from users where username=? and rownum=1"
+								   authorities-by-username-query="select username, authority from authorities where username=?"/>
+			<sec:password-encoder ref="encoder"/>
+		</sec:authentication-provider>
+	</sec:authentication-manager>
+</beans>

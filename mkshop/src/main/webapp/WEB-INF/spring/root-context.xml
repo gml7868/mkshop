@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-5.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+
+	<!-- Root Context: defines shared resources visible to all other web components -->
+
+	<bean class="org.apache.commons.dbcp2.BasicDataSource" id="dataSource">
+		<property name="driverClassName" value="net.sf.log4jdbc.DriverSpy"/>
+		<property name="url" value="jdbc:postgresql://localhost:5432/mkshop"/>
+		<property name="username" value="mkshop"/>
+		<property name="password" value="1234"/>
+		<property name="maxTotal" value="10"/> 			<!-- 최대 활성 연결 수 -->
+		<property name="maxIdle" value="10"/>  			<!-- 최대 비활성 연결 수 -->
+		<property name="maxWaitMillis" value="3000"/> 	<!-- 최대 대기시간 3초 -->
+	</bean>
+
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="mapperLocations" value="classpath:/mapper/*.xml" />
+		<property name="configLocation" value="classpath:/mybatis-config.xml" />
+	</bean>
+
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"/>
+	</bean>
+	
+	<bean id="modelMapper" class="org.modelmapper.ModelMapper"/>
+
+	<!-- 스프링 시큐리티를 사용해 csrf를 포함하는 경우 파일 업로드 객체를 변경해야 한다.
+		 아울러 web.xml에 필터도 등록해야 된다. -->
+	<bean id="filterMultipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 최대 파일 등록 가능한 크기 : 1MB -->
+		<property name="maxUploadSize" value="1048576"/>
+	</bean>
+	
+	<!--  DAO를 생성하는 방법
+			- 클래스의 경우 @Repository를 통해 스프링이 빈 생성
+			- 인터페이스의 경우 마이바티스가 빈 생성 -> 마이바티스에 검색 할 패키지를 지정해야 한다.	
+	 -->
+	 <mybatis-spring:scan base-package="com.project.mkshop.dao"/>
+	
+	<!-- context:exclud-filter : 제외 시키는거 --> 
+	<!-- context:component-scan :  -->
+	 <context:component-scan base-package="com.project.mkshop">
+	 	<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	 </context:component-scan>
+	
+	<!-- namespaces (task) scheduled 활성화 -->
+	<task:executor id="scheduledExecutor" pool-size="20"/>
+	<task:annotation-driven executor="scheduledExecutor"/>
+</beans>
